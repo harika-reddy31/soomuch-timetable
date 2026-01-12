@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Automated Timetable | SOOMUCH.AI</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+<style>
+* { box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+body {
+    margin: 0;
+    background: linear-gradient(135deg, #e3f2fd, #fce4ec);
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 40px 20px;
+}
+
+h1 {
+    text-align: center;
+    font-weight: 600;
+    margin-bottom: 30px;
+    color: #2c3e50;
+}
+
+.card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 25px;
+    margin-bottom: 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.card-title {
+    font-size: 22px;
+    margin-bottom: 20px;
+    color: #1e88e5;
+}
+
+.top-bar {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+}
+
+.badge {
+    color:#2e7d32;
+    font-weight:600;
+}
+
+.button {
+    padding:10px 18px;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:500;
+    color:white;
+}
+
+.edit { background:#ff9800; }
+.save { background:#4caf50; }
+
+select, button {
+    padding:6px;
+    border-radius:6px;
+    border:1px solid #ccc;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 12px;
+}
+
+th, td {
+    padding: 14px;
+    text-align: center;
+}
+
+th {
+    background: #1e88e5;
+    color: #fff;
+}
+
+tr:nth-child(even) td {
+    background: #f7f9fc;
+}
+
+.subject { font-weight:600; }
+.faculty { font-size:12px; color:#777; }
+
+.faculty-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(260px,1fr));
+    gap:20px;
+}
+
+.faculty-card {
+    background: linear-gradient(135deg,#42a5f5,#478ed1);
+    color:white;
+    padding:20px;
+    border-radius:14px;
+}
+@media (max-width: 768px) {
+    table {
+        font-size: 12px;
+    }
+
+    th, td {
+        padding: 8px;
+    }
+
+    .faculty-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+</style>
+</head>
+
+<body>
+<div class="container">
+
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <div class="badge">✔ Auto-Generated Timetable</div>
+
+        {% if mode == "view" %}
+            <a href="/edit?class_name={{ selected_class }}" class="button edit">✏️ Edit Timetable</a>
+        {% else %}
+            <a href="/?class_name={{ selected_class }}" class="button save">💾 Save & View</a>
+        {% endif %}
+    </div>
+
+    <!-- CLASS SELECTOR -->
+    <form method="get" action="/" style="margin-bottom:20px;">
+        <label><strong>Select Class:</strong></label>
+        <select name="class_name" onchange="this.form.submit()">
+            {% for cls in classes %}
+                <option value="{{ cls }}" {% if cls == selected_class %}selected{% endif %}>
+                    {{ cls }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+
+    <h1>📅 Automated Timetable Generator</h1>
+
+    <!-- CLASS TIMETABLE -->
+    <div class="card">
+        <div class="card-title">📘 {{ selected_class }} – Weekly Timetable</div>
+
+        <table>
+            <tr>
+                <th>Day</th>
+                <th>P1</th><th>P2</th><th>P3</th>
+                <th>P4</th><th>P5</th><th>P6</th>
+            </tr>
+
+            {% for day, periods in class_tt.items() %}
+            <tr>
+                <th>{{ day }}</th>
+
+                {% for p in range(1,7) %}
+                <td>
+                {% if periods[p] %}
+                    {% if mode == "edit" %}
+                    <form action="/update" method="post">
+                        <input type="hidden" name="class_name" value="{{ selected_class }}">
+                        <input type="hidden" name="day" value="{{ day }}">
+                        <input type="hidden" name="period" value="{{ p }}">
+
+                        <select name="subject" style="width:95%; margin-bottom:6px;">
+                            {% for sub in subjects %}
+                                <option value="{{ sub }}"
+                                {% if sub == periods[p].subject %}selected{% endif %}>
+                                    {{ sub }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <select name="faculty" style="width:95%;">
+                            {% for f in faculty %}
+                                <option value="{{ f }}"
+                                {% if f == periods[p].faculty %}selected{% endif %}>
+                                    {{ f }}
+                                </option>
+                            {% endfor %}
+                        </select>
+
+                        <button type="submit" style="margin-top:6px;">Update</button>
+                    </form>
+                    {% else %}
+                        <div class="subject">{{ periods[p].subject }}</div>
+                        <div class="faculty">{{ periods[p].faculty }}</div>
+                    {% endif %}
+                {% else %}
+                    —
+                {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <!-- FACULTY TIMETABLE -->
+    <div class="card">
+        <div class="card-title">👩‍🏫 Faculty Timetables</div>
+
+        <div class="faculty-grid">
+            {% for faculty, days in faculty_tt.items() %}
+            <div class="faculty-card">
+                <h3>{{ faculty }}</h3>
+                {% for day, periods in days.items() %}
+                    <p><strong>{{ day }}:</strong> {{ periods | join(", ") }}</p>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
